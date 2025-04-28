@@ -33,6 +33,7 @@ volatile bool cor = true;  // Variável para utilizar funções no display
 ssd1306_t ssd;             // Inicializa a estrutura do display
 char str_x[8]; // Buffer para armazenar a string
 char str_y[8]; // Buffer para armazenar a string
+char str_R[8]; // Buffer para armazenar a string
 absolute_time_t last_time_A = 0;
 
 
@@ -76,6 +77,8 @@ float mostrar_serie(){
           return valor;
       }
   }
+
+  return 0;
 }
 
 void achar_cor(float resistencia){
@@ -109,7 +112,7 @@ void achar_cor(float resistencia){
   digito1 = valor_int / 10;
   digito2 = valor_int % 10;
 
-  ssd1306_fill(&ssd, !cor);                          // Limpa o display
+      ssd1306_fill(&ssd, !cor);                          // Limpa o display
       ssd1306_rect(&ssd, 3, 3, 122, 60, cor, !cor);      // Desenha um retângulo
       ssd1306_draw_string(&ssd, cores[digito1], 10, 10); // Desenha uma string
       ssd1306_draw_string(&ssd, cores[digito2], 10, 30);          // Desenha uma string
@@ -121,6 +124,22 @@ void achar_cor(float resistencia){
       sleep_ms(700);
 }
 
+void modo_padrao(float R_aprox){
+    
+  ssd1306_fill(&ssd, !cor);                          // Limpa o display
+  ssd1306_rect(&ssd, 3, 3, 122, 60, cor, !cor);      // Desenha um retângulo
+  ssd1306_draw_string(&ssd, "R_Lido:", 10, 16);  // Desenha uma string
+  ssd1306_draw_string(&ssd, str_R, 70, 16);  // Desenha uma string
+  ssd1306_draw_string(&ssd, "R_E24:", 10, 41);          // Desenha uma string
+
+  if(R_aprox)
+    ssd1306_draw_string(&ssd, str_y, 60, 41);  // Desenha uma string
+  else
+    ssd1306_draw_string(&ssd, "---", 60, 41);  // Desenha uma string
+
+  ssd1306_send_data(&ssd);                           // Atualiza o display
+  sleep_ms(700);
+}
 void setup_inicial(){
   // Para ser utilizado o modo BOOTSEL com botão B
   gpio_init(botaoB);
@@ -177,11 +196,12 @@ int main(){
 
     sprintf(str_x, "%1.0f", media); // Converte o inteiro em string
     sprintf(str_y, "%1.0f", mostrar_serie());   // Converte o float em string
+    sprintf(str_R, "%1.0f", R_x);   // Converte o float em string
 
     if(modo){
     // cor = !cor;
     //  Atualiza o conteúdo do display com animações
-    ssd1306_fill(&ssd, !cor);                          // Limpa o display
+    /* ssd1306_fill(&ssd, !cor);                          // Limpa o display
     ssd1306_rect(&ssd, 3, 3, 122, 60, cor, !cor);      // Desenha um retângulo
     ssd1306_line(&ssd, 3, 25, 123, 25, cor);           // Desenha uma linha
     ssd1306_line(&ssd, 3, 37, 123, 37, cor);           // Desenha uma linha
@@ -195,7 +215,8 @@ int main(){
     ssd1306_draw_string(&ssd, str_y, 59, 52);          // Desenha uma string
     ssd1306_send_data(&ssd);                           // Atualiza o display
     mostrar_serie();
-    sleep_ms(700);
+    sleep_ms(700); */
+    modo_padrao(mostrar_serie());
     }
     else{
       achar_cor(mostrar_serie());

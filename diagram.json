@@ -55,7 +55,7 @@
       "top": -33.6,
       "left": 105.05,
       "rotate": 90,
-      "attrs": { "value": "10000" }
+      "attrs": { "value": "2200" }
     },
     {
       "type": "wokwi-text",
@@ -77,6 +77,20 @@
       "top": -19.2,
       "left": -134.4,
       "attrs": { "text": "PB B" }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btn1",
+      "top": -80.2,
+      "left": -153.6,
+      "attrs": { "color": "black" }
+    },
+    {
+      "type": "wokwi-text",
+      "id": "text4",
+      "top": -105.6,
+      "left": -134.4,
+      "attrs": { "text": "PB A" }
     }
   ],
   "connections": [
@@ -90,6 +104,9 @@
     [ "btn2:2.r", "pico:GND.3", "black", [ "h38.6", "v19.4" ] ],
     [ "pico:GP28", "bb1:11b.j", "blue", [ "h0" ] ],
     [ "pico:GND.6", "bb1:17b.j", "black", [ "h0" ] ],
+    [ "pico:GND.2", "btn1:2.r", "black", [ "h0" ] ],
+    [ "pico:GP5", "btn1:1.r", "green", [ "h-19.2", "v-67.2" ] ],
+    [ "pico:3V3", "bb1:5b.j", "red", [ "h9.91", "v-37.9" ] ],
     [ "r1:1", "bb1:11b.i", "", [ "$bb" ] ],
     [ "r1:2", "bb1:17b.i", "", [ "$bb" ] ],
     [ "r2:1", "bb1:5b.h", "", [ "$bb" ] ],
