@@ -31,8 +31,9 @@ int ADC_RESOLUTION = 4095; // Resolução do ADC (12 bits)
 volatile bool modo = true; // Variável para alternar os modos 
 volatile bool cor = true;  // Variável para utilizar funções no display
 ssd1306_t ssd;             // Inicializa a estrutura do display
-char str_x[5]; // Buffer para armazenar a string
-char str_y[5]; // Buffer para armazenar a string
+char str_x[8]; // Buffer para armazenar a string
+char str_y[8]; // Buffer para armazenar a string
+absolute_time_t last_time_A = 0;
 
 
 // Trecho para modo BOOTSEL com botão B & alternar modos do display
@@ -43,29 +44,14 @@ void gpio_irq_handler(uint gpio, uint32_t events){
     reset_usb_boot(0, 0);
 
   if(gpio == Botao_A){
-      if(modo){
-        ssd1306_fill(&ssd, !cor);                          // Limpa o display
-        ssd1306_rect(&ssd, 3, 3, 122, 60, cor, !cor);      // Desenha um retângulo
-        ssd1306_line(&ssd, 3, 25, 123, 25, cor);           // Desenha uma linha
-        ssd1306_line(&ssd, 3, 37, 123, 37, cor);           // Desenha uma linha
-        ssd1306_draw_string(&ssd, "CEPEDI   TIC37", 8, 6); // Desenha uma string
-        ssd1306_draw_string(&ssd, "EMBARCATECH", 20, 16);  // Desenha uma string
-        ssd1306_draw_string(&ssd, "  Ohmimetro", 10, 28);  // Desenha uma string
-        ssd1306_draw_string(&ssd, "ADC", 13, 41);          // Desenha uma string
-        ssd1306_draw_string(&ssd, "Resisten.", 50, 41);    // Desenha uma string
-        ssd1306_line(&ssd, 44, 37, 44, 60, cor);           // Desenha uma linha vertical
-        ssd1306_draw_string(&ssd, str_x, 8, 52);           // Desenha uma string
-        ssd1306_draw_string(&ssd, str_y, 59, 52);          // Desenha uma string
-        ssd1306_send_data(&ssd);                           // Atualiza o display
-        sleep_ms(700);
-      }
-      else{
-
-      }
+      absolute_time_t current = to_ms_since_boot(get_absolute_time());
+      if(current - last_time_A < 200000)
+        modo = !modo;
+      last_time_A = current;
   }
 }
 
-void achar_cor(){
+float mostrar_serie(){
   int tamanho, i = 0;
 
   int resistores_e24[] = {
@@ -78,6 +64,22 @@ void achar_cor(){
     30000, 33000, 36000, 39000, 43000, 47000, 51000,
     56000, 62000, 68000, 75000, 82000, 91000, 100000
   };
+
+  tamanho = sizeof(resistores_e24) / sizeof(resistores_e24[0]);
+
+  for(i = 0; i < tamanho; i++){
+      int valor = resistores_e24[i];
+      float tolerancia = valor * 5 / 100;
+
+      if(R_x >= (valor - tolerancia) && R_x <= (valor + tolerancia)){
+          printf("O valor aproximado e de %d Ohms.\n", valor);
+          return valor;
+      }
+  }
+}
+
+void achar_cor(float resistencia){
+  int digito1 = 0, digito2 = 0, multiplicador = 0, valor_int;
 
   char cores[10][10] = {
     "Preto",
@@ -92,17 +94,31 @@ void achar_cor(){
     "Branco"
   };
 
-  tamanho = sizeof(resistores_e24) / sizeof(resistores_e24[0]);
-
-  for(i = 0; i < tamanho; i++){
-      int valor = resistores_e24[i];
-      float tolerancia = valor * 5 / 100;
-
-      if(R_x >= (valor - tolerancia) && R_x <= (valor + tolerancia)){
-          printf("O valor aproximado e de %d Ohms.\n", valor);
-
-      }
+  while(resistencia >= 100.0f){
+    resistencia /= 10.0f;
+    multiplicador++;
   }
+
+  while(resistencia < 10.0f){
+    resistencia *= 10.0f;
+    multiplicador--;
+  }
+
+  valor_int = (int)(resistencia);
+
+  digito1 = valor_int / 10;
+  digito2 = valor_int % 10;
+
+  ssd1306_fill(&ssd, !cor);                          // Limpa o display
+      ssd1306_rect(&ssd, 3, 3, 122, 60, cor, !cor);      // Desenha um retângulo
+      ssd1306_draw_string(&ssd, cores[digito1], 10, 10); // Desenha uma string
+      ssd1306_draw_string(&ssd, cores[digito2], 10, 30);          // Desenha uma string
+      ssd1306_draw_string(&ssd, cores[multiplicador], 10, 50);    // Desenha uma string
+      //ssd1306_draw_string(&ssd, str_x, 8, 52);           // Desenha uma string
+      //ssd1306_draw_string(&ssd, str_y, 59, 52);          // Desenha uma string
+      ssd1306_send_data(&ssd);                           // Atualiza o display
+      mostrar_serie();
+      sleep_ms(700);
 }
 
 void setup_inicial(){
@@ -116,6 +132,7 @@ void setup_inicial(){
   gpio_init(Botao_A);
   gpio_set_dir(Botao_A, GPIO_IN);
   gpio_pull_up(Botao_A);
+  gpio_set_irq_enabled_with_callback(Botao_A, GPIO_IRQ_EDGE_FALL, true, &gpio_irq_handler);
 
   // I2C Initialisation. Using it at 400Khz.
   i2c_init(I2C_PORT, 400 * 1000);
@@ -159,20 +176,29 @@ int main(){
       R_x = (R_conhecido * media) / (ADC_RESOLUTION - media);
 
     sprintf(str_x, "%1.0f", media); // Converte o inteiro em string
-    sprintf(str_y, "%1.0f", R_x);   // Converte o float em string
+    sprintf(str_y, "%1.0f", mostrar_serie());   // Converte o float em string
 
+    if(modo){
     // cor = !cor;
     //  Atualiza o conteúdo do display com animações
     ssd1306_fill(&ssd, !cor);                          // Limpa o display
     ssd1306_rect(&ssd, 3, 3, 122, 60, cor, !cor);      // Desenha um retângulo
-    ssd1306_draw_string(&ssd, "Marrom", 10, 10); // Desenha uma string
-    ssd1306_draw_string(&ssd, "Preto", 10, 30);          // Desenha uma string
-    ssd1306_draw_string(&ssd, "Vermelho", 10, 50);    // Desenha uma string
-    ssd1306_draw_string(&ssd, "550 Ohm", 60, 30);    // Desenha uma string
-    //ssd1306_draw_string(&ssd, str_x, 8, 52);           // Desenha uma string
-    //ssd1306_draw_string(&ssd, str_y, 59, 52);          // Desenha uma string
+    ssd1306_line(&ssd, 3, 25, 123, 25, cor);           // Desenha uma linha
+    ssd1306_line(&ssd, 3, 37, 123, 37, cor);           // Desenha uma linha
+    ssd1306_draw_string(&ssd, "CEPEDI   TIC37", 8, 6); // Desenha uma string
+    ssd1306_draw_string(&ssd, "EMBARCATECH", 20, 16);  // Desenha uma string
+    ssd1306_draw_string(&ssd, "  Ohmimetro", 10, 28);  // Desenha uma string
+    ssd1306_draw_string(&ssd, "ADC", 13, 41);          // Desenha uma string
+    ssd1306_draw_string(&ssd, "Resisten.", 50, 41);    // Desenha uma string
+    ssd1306_line(&ssd, 44, 37, 44, 60, cor);           // Desenha uma linha vertical
+    ssd1306_draw_string(&ssd, str_x, 8, 52);           // Desenha uma string
+    ssd1306_draw_string(&ssd, str_y, 59, 52);          // Desenha uma string
     ssd1306_send_data(&ssd);                           // Atualiza o display
-    achar_cor();
+    mostrar_serie();
     sleep_ms(700);
+    }
+    else{
+      achar_cor(mostrar_serie());
+    }
   }
 }
