@@ -1,12 +1,22 @@
-# Interface Homem-Máquina com Display OLED - RP2040 (BitDogLab)
+# Ohmímetor na Placa BitDogLab
 
-# Descrição
+## Descrição
+Este projeto monta um ohmímetro através da leitura da resistência pela GPIO 28, que contém ADC, e por meio de cálculos, determina de maneira razoável 
+o valor da resistência montada em um circuito.
 
-Este projeto foi desenvolvido a placa BitDogLab. Tem como objetivo criar uma interface homem-máquina (IHM) utilizando um display OLED modelo "SSD1306" (resolução 128x64 pixels).
+## Funcionalidades
+- **Botão A**: Alterna entre os modos de exibição no display.
+- **Botão B**: Faz com que a placa entre em modo Bootsel.
 
-A aplicação exibe informações em tempo real dos potenciômetros do joystick, como a leitura dos eixos X e Y. Também exibe o estado dos botões físicos e do botão do joystick. As informações são mostradas de forma organizada no display OLED via interface I2C, objetivando
-o estudo/aprendizado das funções da biblioteca do display.
+## Estrutura do Código
+O código apresenta diversas funções, das quais vale a pena citar:
 
-Observação.
-- Implementação do modo BOOTSEL por botão externo (Botão B - GPIO 6). Isto facilita a gravação no desenvolvimento do programa. Quando o projeto for finalizado, deve-se retirar
-esta função.
+- `mostrar_serie()`: Aproxima o valor lido em R_x (valor do ADC) para o padrão E24 de resistores.
+- `achar_cor()`: Mostra no display o nome das cores que o resistor aproximado para a série E24 tem.
+- `modo_padrao()`: Modo inicial do projeto, apresenta o valor aproximado e lido pelo ADC.
+
+## Desenvolvedor
+Guilherme Miller Gama Cardoso
+
+## Link com o vídeo explicativo
+https://drive.google.com/file/d/1p3ClYKP0K_hSHX37an257BhhqBniDbVw/view?usp=sharing
